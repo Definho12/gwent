@@ -33,19 +33,11 @@ class ShotsTest {
     }
 
     private fun share(uri: Uri, mime: String) {
-        val i = Intent(ctx, MainActivity::class.java)
-            .setAction(Intent.ACTION_SEND)
-            .setType(mime)
-            .putExtra(Intent.EXTRA_STREAM, uri)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        if (first) {
-            first = false
-            inst.startActivitySync(i)
-        } else {
-            ctx.startActivity(i)
-        }
+        // Abre pelo shell (como faria outro app), sem travar o teste se algo der errado
+        val cmd = "am start -a android.intent.action.SEND -t $mime --eu android.intent.extra.STREAM $uri " +
+            "--grant-read-uri-permission -n ${ctx.packageName}/.MainActivity"
+        inst.uiAutomation.executeShellCommand(cmd).close()
     }
-    private var first = true
 
     private fun need(what: String, found: Any?) {
         if (found == null) {
