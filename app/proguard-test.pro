@@ -1,0 +1,5 @@
+-dontwarn **
+-dontobfuscate
+-keep class androidx.test.** { *; }
+-keep class org.junit.** { *; }
+-keep class com.guilherme.gwent.** { *; }

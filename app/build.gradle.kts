@@ -35,6 +35,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // No teste do emulador, o app testado é o mesmo da versão final (com R8)
             if (project.hasProperty("emu")) proguardFiles("proguard-emu.pro")
+            testProguardFiles("proguard-test.pro")
             signingConfig = signingConfigs.getByName("release")
         }
         debug { signingConfig = signingConfigs.getByName("release") }
