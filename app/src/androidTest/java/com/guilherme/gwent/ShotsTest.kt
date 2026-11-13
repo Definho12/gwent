@@ -71,6 +71,8 @@ class ShotsTest {
         need("editor", waitFor(By.text("Criar figurinha"), 20_000))
         SystemClock.sleep(2500)
         shot("1-editor-video.png")
+        SystemClock.sleep(300)
+        device.takeScreenshot(Report.file("1b-editor-video.png")) // deve ser outro quadro (prévia tocando)
         waitFor(By.text("Criar figurinha"), 5_000)?.click()
         SystemClock.sleep(1500)
         shot("2-criando.png")

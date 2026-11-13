@@ -83,13 +83,17 @@ import com.guilherme.gwent.engine.Renderer
 import com.guilherme.gwent.engine.Sources
 import com.guilherme.gwent.engine.TooBigException
 import com.guilherme.gwent.engine.UnsupportedMediaException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 import kotlin.math.abs
+
+private const val PREVIEW_FPS = 10
 
 private val CaptionColors = listOf(Color.White, Color(0xFFFFE45C), Color(0xFF111111))
 
@@ -175,11 +179,49 @@ fun EditorScreen(
         }
     }
 
+    // Prévia animada: lê o trecho em tamanho pequeno e fica repetindo
+    var playFrames by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+    var playIdx by remember { mutableIntStateOf(0) }
+    var loadJob by remember { mutableStateOf<Job?>(null) }
+    var reloadKey by remember { mutableIntStateOf(0) }
+    LaunchedEffect(source, asAnimation, start, end, reloadKey) {
+        playFrames = emptyList()
+        val s = source ?: return@LaunchedEffect
+        if (!asAnimation || !s.animated) return@LaunchedEffect
+        delay(350) // espera o usuário soltar a alça do trecho
+        loadJob = coroutineContext[Job]
+        try {
+            withContext(worker) {
+                val job = coroutineContext[Job]
+                val acc = ArrayList<Bitmap>()
+                s.forEachFrame(start, end, PREVIEW_FPS) { bmp, k ->
+                    if (job?.isActive == false) throw CancellationException()
+                    val small = Sources.scaleDown(bmp, 420)
+                    acc += if (small === bmp) bmp.copy(Bitmap.Config.ARGB_8888, false) else small
+                    if (k < 4 || k % 5 == 0) playFrames = acc.toList()
+                }
+                playFrames = acc.toList()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // sem prévia animada; fica o quadro parado
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000L / PREVIEW_FPS)
+            val n = playFrames.size
+            if (n > 0) playIdx = (playIdx + 1) % n
+        }
+    }
+
     val packs by Packs.all.collectAsState()
     val caption = Caption(captionText, captionPos, CaptionColors[captionColor].toArgb())
 
     fun create() {
         val s = source ?: return
+        loadJob?.cancel() // libera a leitura da mídia para a criação
         cancelled = false
         progress = 0f
         busy = "Criando figurinha…"
@@ -201,13 +243,13 @@ fun EditorScreen(
                 chosenPack = pack.id
                 next(pack.id)
             } catch (e: InterruptedException) {
-                busy = null
+                busy = null; reloadKey++
             } catch (e: TooBigException) {
-                busy = null; errorMsg = e.message
+                busy = null; errorMsg = e.message; reloadKey++
             } catch (e: OutOfMemoryError) {
                 busy = null; errorMsg = "Faltou memória no celular. Tente um trecho mais curto."
             } catch (e: Exception) {
-                busy = null; errorMsg = "Algo deu errado: ${e.message ?: e.javaClass.simpleName}"
+                busy = null; errorMsg = "Algo deu errado: ${e.message ?: e.javaClass.simpleName}"; reloadKey++
             }
         }
     }
@@ -278,7 +320,9 @@ fun EditorScreen(
             ) {
                 Checker(Modifier.fillMaxSize())
                 val s = source
-                val shown = cutout?.takeIf { !asAnimation } ?: preview
+                val frames = playFrames
+                val shown = if (asAnimation && frames.isNotEmpty()) frames[playIdx % frames.size]
+                    else cutout?.takeIf { !asAnimation } ?: preview
                 if (s != null && shown != null) {
                     androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
                         drawIntoCanvas { c ->
