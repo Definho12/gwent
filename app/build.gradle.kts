@@ -33,6 +33,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // No teste do emulador, o app testado é o mesmo da versão final (com R8)
+            if (project.hasProperty("emu")) proguardFiles("proguard-emu.pro")
             signingConfig = signingConfigs.getByName("release")
         }
         debug { signingConfig = signingConfigs.getByName("release") }
@@ -40,6 +42,7 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
+    testBuildType = if (project.hasProperty("emu")) "release" else "debug"
     packaging { jniLibs { useLegacyPackaging = false } }
 }
 

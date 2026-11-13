@@ -1,7 +1,7 @@
 #!/bin/bash
 # Roda os testes no emulador e junta prints + relatório em ./shots
 echo "sdk.dir=$ANDROID_HOME" > local.properties
-gradle :app:connectedDebugAndroidTest -Pemu -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --no-daemon --console=plain > emu.log 2>&1
+gradle :app:connectedReleaseAndroidTest -Pemu -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --no-daemon --console=plain > emu.log 2>&1
 echo $? > emu.status
 mkdir -p shots
 adb pull /sdcard/Android/data/com.guilherme.gwent/files/shots/. shots/ || true
