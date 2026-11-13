@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.guilherme.gwent"
     compileSdk = 35
-    System.getenv("ANDROID_NDK_LATEST_HOME")?.let { ndkPath = it }
+    System.getenv("ANDROID_NDK_LATEST_HOME")?.let { ndkPath = it; ndkVersion = File(it).name }
 
     defaultConfig {
         applicationId = "com.guilherme.gwent"
