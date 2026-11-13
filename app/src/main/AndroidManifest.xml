@@ -34,6 +34,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
             <intent-filter android:label="Criar figurinhas">
                 <action android:name="android.intent.action.SEND_MULTIPLE" />

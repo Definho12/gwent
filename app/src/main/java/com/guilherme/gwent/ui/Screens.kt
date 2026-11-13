@@ -64,6 +64,7 @@ fun HomeScreen(
     addedIds: Set<String>,
     onGallery: () -> Unit,
     onFiles: () -> Unit,
+    onLink: () -> Unit,
     onOpenPack: (String) -> Unit,
 ) {
     val ctx = LocalContext.current
@@ -90,7 +91,7 @@ fun HomeScreen(
                 Text("Nova figurinha", style = MaterialTheme.typography.titleMedium, color = Gw.Text)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Foto, vídeo, GIF ou figurinha de outro app. Vídeos e GIFs viram figurinhas animadas.",
+                    "Foto, vídeo, GIF, figurinha de outro app ou link do Pinterest. Vídeos e GIFs viram figurinhas animadas.",
                     style = MaterialTheme.typography.bodySmall, color = Gw.Muted,
                 )
                 Spacer(Modifier.height(16.dp))
@@ -98,6 +99,8 @@ fun HomeScreen(
                     PrimaryButton("Galeria", Modifier.weight(1f), icon = Icons.Filled.Add, onClick = onGallery)
                     SecondaryButton("Arquivos", Modifier.weight(1f), onClick = onFiles)
                 }
+                Spacer(Modifier.height(10.dp))
+                SecondaryButton("Colar link (Pinterest, Tenor…)", Modifier.fillMaxWidth(), onClick = onLink)
             }
         }
         if (packs.isNotEmpty()) {

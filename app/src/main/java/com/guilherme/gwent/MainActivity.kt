@@ -37,6 +37,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.guilherme.gwent.data.Packs
 import com.guilherme.gwent.data.WhatsApp
+import com.guilherme.gwent.engine.Links
+import com.guilherme.gwent.ui.LinkScreen
+import com.guilherme.gwent.ui.PasteLinkDialog
 import com.guilherme.gwent.ui.EditorScreen
 import com.guilherme.gwent.ui.Gw
 import com.guilherme.gwent.ui.GwentTheme
@@ -50,6 +53,7 @@ sealed class Screen {
     data object Home : Screen()
     data class PackView(val id: String) : Screen()
     data class Editor(val uris: List<Uri>, val packId: String?) : Screen()
+    data class Link(val text: String, val packId: String?) : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -79,7 +83,15 @@ class MainActivity : ComponentActivity() {
             Intent.ACTION_SEND_MULTIPLE -> streams(intent)
             else -> emptyList()
         }
-        if (uris.isNotEmpty()) screen = Screen.Editor(uris.take(30), null)
+        if (uris.isNotEmpty()) {
+            screen = Screen.Editor(uris.take(30), null)
+            return
+        }
+        // Link compartilhado como texto (ex.: Pinterest → Compartilhar → Gwent)
+        if (intent.action == Intent.ACTION_SEND) {
+            val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+            if (text != null && Links.firstUrl(text) != null) screen = Screen.Link(text, null)
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -100,6 +112,7 @@ class MainActivity : ComponentActivity() {
         var added by remember { mutableStateOf<Set<String>>(emptySet()) }
         var waError by remember { mutableStateOf<String?>(null) }
         var pickFor by remember { mutableStateOf<String?>(null) }
+        var askLink by remember { mutableStateOf(false) }
 
         fun refreshAdded() {
             scope.launch {
@@ -141,6 +154,7 @@ class MainActivity : ComponentActivity() {
                     addedIds = added,
                     onGallery = { openGallery(null) },
                     onFiles = { openFiles(null) },
+                    onLink = { askLink = true },
                     onOpenPack = { screen = Screen.PackView(it) },
                 )
                 is Screen.PackView -> {
@@ -176,6 +190,13 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+                is Screen.Link -> key(s) {
+                    LinkScreen(
+                        text = s.text,
+                        onReady = { uri -> screen = Screen.Editor(listOf(uri), s.packId) },
+                        onClose = { screen = s.packId?.let { Screen.PackView(it) } ?: Screen.Home },
+                    )
+                }
                 is Screen.Editor -> key(s) {
                     EditorScreen(
                         uris = s.uris,
@@ -190,6 +211,12 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        if (askLink) {
+            PasteLinkDialog(
+                onDismiss = { askLink = false },
+                onGo = { text -> askLink = false; screen = Screen.Link(text, null) },
+            )
+        }
         waError?.let { m ->
             AlertDialog(
                 onDismissRequest = { waError = null },

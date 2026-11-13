@@ -13,8 +13,8 @@ android {
         applicationId = "com.guilherme.gwent"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
         ndk { abiFilters += if (project.hasProperty("emu")) listOf("x86_64") else listOf("arm64-v8a") }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild { cmake { arguments += listOf("-DANDROID_STL=none") } }
@@ -49,6 +49,7 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:core:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
