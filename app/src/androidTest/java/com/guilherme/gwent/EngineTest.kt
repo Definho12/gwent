@@ -11,6 +11,7 @@ import com.guilherme.gwent.engine.Caption
 import com.guilherme.gwent.engine.Framing
 import com.guilherme.gwent.engine.GifSource
 import com.guilherme.gwent.engine.Limits
+import com.guilherme.gwent.engine.Links
 import com.guilherme.gwent.engine.MadeSticker
 import com.guilherme.gwent.engine.Maker
 import com.guilherme.gwent.engine.NativeWebp
@@ -113,6 +114,23 @@ class EngineTest {
         assertTrue(f.height > f.width)
         src.close()
         animate("rotated.mp4", 0, 3_000)
+    }
+
+    /** Link real que o Guilherme mandou (pin com GIF). */
+    @Test fun pinterestLink() {
+        val link = "https://pin.it/3A3P3jqK9"
+        val media = try { Links.findMedia(link) } catch (e: Exception) { Report.log("pinterest: ERRO ${e.javaClass.simpleName}: ${e.message}"); throw e }
+        Report.log("pinterest: mídia = $media")
+        val f = Links.fetch(link, File(ctx.cacheDir, "links")) {}
+        Report.log("pinterest: baixou ${f.name} (${f.length() / 1024} KB)")
+        val src = Sources.open(ctx, Uri.fromFile(f))
+        Report.log("pinterest: ${src.javaClass.simpleName} ${src.width}x${src.height}, ${src.durationMs} ms, ${src.nativeFps} fps")
+        assertTrue("pinterest: precisa ser animado", src.animated)
+        val t0 = SystemClock.elapsedRealtime()
+        val made = Maker.makeAnimated(src, 0, minOf(src.durationMs, 5_000), Framing.fit(src.width, src.height), null, ctx.cacheDir, {})
+        src.close()
+        checkAnimated("pinterest", made, SystemClock.elapsedRealtime() - t0)
+        Report.saveSticker("pinterest.webp", made.webp)
     }
 
     @Test fun providerServesPackToWhatsApp() {
