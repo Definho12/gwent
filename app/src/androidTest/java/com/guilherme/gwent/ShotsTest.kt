@@ -10,7 +10,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
-import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -39,7 +38,21 @@ class ShotsTest {
             .setType(mime)
             .putExtra(Intent.EXTRA_STREAM, uri)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        ctx.startActivity(i)
+        if (first) {
+            first = false
+            inst.startActivitySync(i)
+        } else {
+            ctx.startActivity(i)
+        }
+    }
+    private var first = true
+
+    private fun need(what: String, found: Any?) {
+        if (found == null) {
+            device.takeScreenshot(Report.file("erro-$what.png"))
+            Report.file("erro-$what.xml").outputStream().use { device.dumpWindowHierarchy(it) }
+            throw AssertionError(what)
+        }
     }
 
     private fun shot(name: String) {
@@ -51,38 +64,38 @@ class ShotsTest {
         // Vídeo → figurinha animada
         val video = publish("clip.mp4", "video/mp4", true)
         share(video, "video/mp4")
-        assertNotNull("editor não abriu", device.wait(Until.findObject(By.text("Criar figurinha")), 20_000))
+        need("editor", device.wait(Until.findObject(By.text("Criar figurinha")), 20_000))
         SystemClock.sleep(2500)
         shot("1-editor-video.png")
         device.findObject(By.text("Criar figurinha")).click()
         SystemClock.sleep(1500)
         shot("2-criando.png")
         val t0 = SystemClock.elapsedRealtime()
-        assertNotNull("pacote não abriu", device.wait(Until.findObject(By.textContains("WhatsApp")), 120_000))
+        need("pacote", device.wait(Until.findObject(By.textContains("WhatsApp")), 120_000))
         Report.log("fluxo vídeo: ${SystemClock.elapsedRealtime() - t0} ms até abrir o pacote")
         shot("3-pacote-animadas.png")
 
         // Foto → figurinha com texto
         val photo = publish("photo.jpg", "image/jpeg", false)
         share(photo, "image/jpeg")
-        assertNotNull(device.wait(Until.findObject(By.text("Criar figurinha")), 20_000))
+        need("editor2", device.wait(Until.findObject(By.text("Criar figurinha")), 20_000))
         SystemClock.sleep(1500)
         device.findObject(By.text("Texto")).click()
         val field = device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)
         field?.text = "Bom dia grupo"
         shot("4-editor-foto-texto.png")
         device.findObject(By.text("Criar figurinha")).click()
-        assertNotNull(device.wait(Until.findObject(By.textContains("WhatsApp")), 60_000))
+        need("pacote2", device.wait(Until.findObject(By.textContains("WhatsApp")), 60_000))
         shot("5-pacote-normais.png")
 
         // GIF → mais uma no pacote de animadas
         val gif = publish("anim.gif", "image/gif", false)
         share(gif, "image/gif")
-        assertNotNull(device.wait(Until.findObject(By.text("Criar figurinha")), 20_000))
+        need("editor2", device.wait(Until.findObject(By.text("Criar figurinha")), 20_000))
         SystemClock.sleep(1500)
         shot("6-editor-gif.png")
         device.findObject(By.text("Criar figurinha")).click()
-        assertNotNull(device.wait(Until.findObject(By.textContains("WhatsApp")), 60_000))
+        need("pacote2", device.wait(Until.findObject(By.textContains("WhatsApp")), 60_000))
         SystemClock.sleep(1500)
         device.pressBack()
         SystemClock.sleep(1500)
