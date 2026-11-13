@@ -76,10 +76,12 @@ object Maker {
         cacheDir: File,
         progress: (Float) -> Unit,
         cancelled: () -> Boolean = { false },
+        speed: Float = 1f,
     ): MadeSticker {
-        val (s, e) = Plan.clampRange(startMs, endMs, source.durationMs)
-        val duration = e - s
-        val storedFps = source.nativeFps.roundToInt().coerceIn(4, Limits.MAX_FPS)
+        val (s, e) = Plan.clampRange(startMs, endMs, source.durationMs, Plan.maxSpan(speed))
+        // duração da figurinha (o trecho fica mais curto ou mais longo conforme a velocidade)
+        val duration = minOf(Limits.MAX_DURATION_MS, ((e - s) / speed).toLong().coerceAtLeast(100))
+        val storedFps = (source.nativeFps * speed).roundToInt().coerceIn(4, Limits.MAX_FPS)
         val total = Plan.frameCount(duration, storedFps)
         val store = FrameStore(File(cacheDir, "frames.raw"))
         var trayBytes: ByteArray? = null
@@ -87,7 +89,8 @@ object Maker {
             // 1) desenha todos os quadros uma vez e guarda num arquivo temporário
             val canvasBmp = Bitmap.createBitmap(Limits.SIZE, Limits.SIZE, Bitmap.Config.ARGB_8888)
             val px = IntArray(Limits.SIZE * Limits.SIZE)
-            source.forEachFrame(s, e, storedFps) { bmp, k ->
+            source.forEachFrame(s, e, storedFps / speed.toDouble()) { bmp, k ->
+                if (k >= total) return@forEachFrame
                 if (cancelled()) throw InterruptedException()
                 Renderer.render(bmp, source.width, source.height, framing, caption, canvasBmp)
                 if (k == 0) trayBytes = tray(canvasBmp)

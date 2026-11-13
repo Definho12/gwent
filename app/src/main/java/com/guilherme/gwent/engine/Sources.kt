@@ -26,10 +26,10 @@ interface MediaSource : Closeable {
     fun frameAt(ms: Long, maxSide: Int): Bitmap
 
     /**
-     * Percorre o trecho [startMs, endMs) a [fps] quadros por segundo.
+     * Percorre o trecho [startMs, endMs) a [fps] quadros por segundo (do tempo da mídia).
      * O Bitmap entregue pode ser reaproveitado: use-o só dentro do bloco.
      */
-    fun forEachFrame(startMs: Long, endMs: Long, fps: Int, block: (Bitmap, Int) -> Unit)
+    fun forEachFrame(startMs: Long, endMs: Long, fps: Double, block: (Bitmap, Int) -> Unit)
 
     override fun close() {}
 }
@@ -126,7 +126,7 @@ class StaticSource(private val context: Context, private val uri: Uri) : MediaSo
         return Sources.scaleDown(c, maxSide)
     }
 
-    override fun forEachFrame(startMs: Long, endMs: Long, fps: Int, block: (Bitmap, Int) -> Unit) {
+    override fun forEachFrame(startMs: Long, endMs: Long, fps: Double, block: (Bitmap, Int) -> Unit) {
         block(cached!!, 0)
     }
 }
@@ -150,7 +150,7 @@ abstract class SequentialSource : MediaSource {
         return Sources.scaleDown(b, maxSide).let { if (it === b) b.copy(Bitmap.Config.ARGB_8888, false) else it }
     }
 
-    override fun forEachFrame(startMs: Long, endMs: Long, fps: Int, block: (Bitmap, Int) -> Unit) {
+    override fun forEachFrame(startMs: Long, endMs: Long, fps: Double, block: (Bitmap, Int) -> Unit) {
         rewind()
         val count = Plan.frameCount(endMs - startMs, fps)
         var current = next() ?: return
@@ -339,7 +339,7 @@ class VideoSource(context: Context, uri: Uri) : MediaSource {
         return argb(upright(Sources.scaleDown(b, maxSide)))
     }
 
-    override fun forEachFrame(startMs: Long, endMs: Long, fps: Int, block: (Bitmap, Int) -> Unit) {
+    override fun forEachFrame(startMs: Long, endMs: Long, fps: Double, block: (Bitmap, Int) -> Unit) {
         val count = Plan.frameCount(endMs - startMs, fps)
         val bigFrame = width.toLong() * height > 2_400_000L
         if (frameCount > 0 && !bigFrame) {
@@ -356,7 +356,7 @@ class VideoSource(context: Context, uri: Uri) : MediaSource {
     }
 
     /** Lê quadros seguidos em lotes (bem mais rápido que procurar um por um). */
-    private fun byIndex(startMs: Long, count: Int, fps: Int, block: (Bitmap, Int) -> Unit) {
+    private fun byIndex(startMs: Long, count: Int, fps: Double, block: (Bitmap, Int) -> Unit) {
         val srcFps = frameCount * 1000.0 / durationMs
         val wanted = IntArray(count) { k ->
             val t = startMs + Plan.frameTime(k, fps)

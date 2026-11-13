@@ -36,6 +36,14 @@ class PlanTest {
         assertEquals(0, s2); assertEquals(2000, e2)
     }
 
+    @Test fun speedSpan() {
+        assertEquals(20_000L, Plan.maxSpan(2f))
+        assertEquals(5_000L, Plan.maxSpan(0.5f))
+        val (s, e) = Plan.clampRange(0, 9_000, 60_000, Plan.maxSpan(0.5f))
+        assertEquals(0L, s); assertEquals(5_000L, e)
+        assertEquals(20, Plan.frameCount(4_000, 5.0))
+    }
+
     @Test fun padding() {
         assertEquals(listOf(0, 0, 0), Plan.padded(1))
         assertEquals(listOf(0, 1, 0), Plan.padded(2))

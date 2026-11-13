@@ -49,11 +49,19 @@ object Plan {
     }
 
     /** Número de quadros de uma animação com essa duração e fps. */
-    fun frameCount(durationMs: Long, fps: Int): Int =
-        maxOf(1, ceil(durationMs * fps / 1000.0).toInt())
+    fun frameCount(durationMs: Long, fps: Int): Int = frameCount(durationMs, fps.toDouble())
+    fun frameCount(durationMs: Long, fps: Double): Int =
+        maxOf(1, ceil(durationMs * fps / 1000.0 - 1e-9).toInt())
 
     /** Momento (ms, a partir do início do trecho) do quadro k. */
-    fun frameTime(k: Int, fps: Int): Int = (k * 1000.0 / fps).roundToInt()
+    fun frameTime(k: Int, fps: Int): Int = frameTime(k, fps.toDouble())
+    fun frameTime(k: Int, fps: Double): Int = (k * 1000.0 / fps).roundToInt()
+
+    /** Velocidades oferecidas no editor. */
+    val speeds = listOf(0.5f, 1f, 1.5f, 2f, 3f)
+
+    /** Trecho máximo da mídia original para a figurinha não passar de 10 s. */
+    fun maxSpan(speed: Float): Long = (Limits.MAX_DURATION_MS * speed).toLong()
 
     /**
      * Os quadros foram guardados a [storedFps]. Para montar a animação a [fps],
@@ -71,10 +79,10 @@ object Plan {
     fun defaultEnd(durationMs: Long): Long = minOf(durationMs, 5_000L)
 
     /** Corrige um trecho escolhido pelo usuário para caber nas regras. */
-    fun clampRange(start: Long, end: Long, total: Long): Pair<Long, Long> {
+    fun clampRange(start: Long, end: Long, total: Long, maxSpan: Long = Limits.MAX_DURATION_MS): Pair<Long, Long> {
         val s = start.coerceIn(0, maxOf(0, total - 100))
         var e = end.coerceIn(s + 100, maxOf(s + 100, total))
-        if (e - s > Limits.MAX_DURATION_MS) e = s + Limits.MAX_DURATION_MS
+        if (e - s > maxSpan) e = s + maxSpan
         return s to e
     }
 

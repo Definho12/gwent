@@ -121,6 +121,7 @@ fun EditorScreen(
     var start by remember { mutableLongStateOf(0L) }
     var end by remember { mutableLongStateOf(0L) }
     var stillAt by remember { mutableLongStateOf(0L) }
+    var speed by remember { mutableFloatStateOf(1f) }
     var preview by remember { mutableStateOf<Bitmap?>(null) }
     var cutout by remember { mutableStateOf<Bitmap?>(null) }
     var framing by remember { mutableStateOf(Framing(1f)) }
@@ -156,6 +157,7 @@ fun EditorScreen(
             asAnimation = s.animated
             start = 0L
             end = if (s.animated) Plan.defaultEnd(s.durationMs) else 0L
+            speed = 1f
             stillAt = 0L
             framing = Framing.fill(s.width, s.height)
             source = s
@@ -184,7 +186,7 @@ fun EditorScreen(
     var playIdx by remember { mutableIntStateOf(0) }
     var loadJob by remember { mutableStateOf<Job?>(null) }
     var reloadKey by remember { mutableIntStateOf(0) }
-    LaunchedEffect(source, asAnimation, start, end, reloadKey) {
+    LaunchedEffect(source, asAnimation, start, end, speed, reloadKey) {
         playFrames = emptyList()
         val s = source ?: return@LaunchedEffect
         if (!asAnimation || !s.animated) return@LaunchedEffect
@@ -194,7 +196,7 @@ fun EditorScreen(
             withContext(worker) {
                 val job = coroutineContext[Job]
                 val acc = ArrayList<Bitmap>()
-                s.forEachFrame(start, end, PREVIEW_FPS) { bmp, k ->
+                s.forEachFrame(start, end, PREVIEW_FPS / speed.toDouble()) { bmp, k ->
                     if (job?.isActive == false) throw CancellationException()
                     val small = Sources.scaleDown(bmp, 420)
                     acc += if (small === bmp) bmp.copy(Bitmap.Config.ARGB_8888, false) else small
@@ -230,7 +232,7 @@ fun EditorScreen(
                 val made = withContext(worker) {
                     if (asAnimation) {
                         Maker.makeAnimated(s, start, end, framing, caption, ctx.cacheDir,
-                            progress = { progress = it }, cancelled = { cancelled })
+                            progress = { progress = it }, cancelled = { cancelled }, speed = speed)
                     } else {
                         val bmp = cutout ?: s.frameAt(stillAt, 2048)
                         Maker.makeStatic(bmp, s.width, s.height, framing, caption)
@@ -362,8 +364,11 @@ fun EditorScreen(
                     Spacer(Modifier.height(12.dp))
                     if (asAnimation) {
                         val dur = s.durationMs.toFloat()
+                        val span = Plan.maxSpan(speed)
+                        val out = ((end - start) / speed).toLong()
                         Text(
-                            "Trecho: ${secs(start)} – ${secs(end)}  (${secs(end - start)})",
+                            "Trecho: ${secs(start)} – ${secs(end)}" +
+                                if (speed == 1f) "  (${secs(end - start)})" else "  → figurinha de ${secs(out)}",
                             style = MaterialTheme.typography.bodySmall, color = Gw.Text,
                         )
                         RangeSlider(
@@ -371,20 +376,33 @@ fun EditorScreen(
                             onValueChange = { r ->
                                 var ns = r.start.toLong()
                                 var ne = r.endInclusive.toLong()
-                                if (ne - ns > Limits.MAX_DURATION_MS) {
-                                    if (ns != start) ne = ns + Limits.MAX_DURATION_MS else ns = ne - Limits.MAX_DURATION_MS
+                                if (ne - ns > span) {
+                                    if (ns != start) ne = ns + span else ns = ne - span
                                 }
                                 if (ne - ns < 200) { if (ns != start) ns = ne - 200 else ne = ns + 200 }
-                                val (cs, ce) = Plan.clampRange(ns, ne, s.durationMs)
+                                val (cs, ce) = Plan.clampRange(ns, ne, s.durationMs, span)
                                 start = cs; end = ce
                             },
                             valueRange = 0f..dur,
                             colors = SliderDefaults.colors(thumbColor = Gw.Accent, activeTrackColor = Gw.Accent, inactiveTrackColor = Gw.Surface2),
                         )
                         Text(
-                            "Máximo de 10 s. Trechos curtos ficam mais nítidos.",
+                            "A figurinha pode ter até 10 s. Trechos curtos ficam mais nítidos.",
                             style = MaterialTheme.typography.bodySmall, color = Gw.Muted,
                         )
+                        Spacer(Modifier.height(12.dp))
+                        Text("Velocidade", style = MaterialTheme.typography.bodySmall, color = Gw.Text)
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Plan.speeds.forEach { v ->
+                                val label = (if (v % 1f == 0f) v.toInt().toString() else v.toString().replace('.', ',')) + "×"
+                                Chip(label, speed == v) {
+                                    speed = v
+                                    val (cs, ce) = Plan.clampRange(start, end, s.durationMs, Plan.maxSpan(v))
+                                    start = cs; end = ce
+                                }
+                            }
+                        }
                     } else {
                         Text("Quadro: ${secs(stillAt)}", style = MaterialTheme.typography.bodySmall, color = Gw.Text)
                         Slider(

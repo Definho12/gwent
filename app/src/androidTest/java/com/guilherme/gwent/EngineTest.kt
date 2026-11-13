@@ -37,7 +37,7 @@ class EngineTest {
         return Uri.fromFile(f)
     }
 
-    private fun checkAnimated(name: String, made: MadeSticker, ms: Long) {
+    private fun checkAnimated(name: String, made: MadeSticker, ms: Long): Int {
         val h = NativeWebp.decoderNew(made.webp)
         assertTrue("$name: decodificar", h != 0L)
         val info = NativeWebp.decoderInfo(h)!!
@@ -51,6 +51,7 @@ class EngineTest {
         assertTrue("$name: tamanho", made.webp.size <= Limits.ANIMATED_MAX_BYTES)
         assertTrue("$name: duração", last <= Limits.MAX_DURATION_MS)
         checkTray(name, made)
+        return last
     }
 
     private fun checkTray(name: String, made: MadeSticker) {
@@ -131,6 +132,25 @@ class EngineTest {
         src.close()
         checkAnimated("pinterest", made, SystemClock.elapsedRealtime() - t0)
         Report.saveSticker("pinterest.webp", made.webp)
+    }
+
+    @Test fun speed() {
+        val v = Sources.open(ctx, asset("clip.mp4"))
+        val fast = Maker.makeAnimated(v, 0, 4_000, Framing.fill(v.width, v.height), null, ctx.cacheDir, {}, speed = 2f)
+        v.close()
+        val fastMs = checkAnimated("clip.mp4 2x", fast, 0)
+        assertTrue("2x: ~2 s, deu $fastMs", fastMs in 1800..2200)
+        val g = Sources.open(ctx, asset("anim.gif"))
+        val slow = Maker.makeAnimated(g, 0, g.durationMs, Framing.fill(g.width, g.height), null, ctx.cacheDir, {}, speed = 0.5f)
+        val expected = g.durationMs * 2
+        g.close()
+        val slowMs = checkAnimated("anim.gif 0.5x", slow, 0)
+        assertTrue("0.5x: ~$expected ms, deu $slowMs", slowMs in (expected - 250)..(expected + 250))
+        // 3x num trecho de 30 s ficaria com 10 s; aqui o vídeo tem 4 s
+        val v3 = Sources.open(ctx, asset("clip.mp4"))
+        val f3 = Maker.makeAnimated(v3, 0, 4_000, Framing.fill(v3.width, v3.height), null, ctx.cacheDir, {}, speed = 3f)
+        v3.close()
+        checkAnimated("clip.mp4 3x", f3, 0)
     }
 
     @Test fun providerServesPackToWhatsApp() {
