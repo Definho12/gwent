@@ -20,7 +20,16 @@ object Links {
     private const val MAX_BYTES = 80L * 1024 * 1024
 
     private val urlRegex = Regex("""https?://[^\s"'<>]+""")
-    private val pinIdRegex = Regex("""/pin/(\d{6,})""")
+    private val pinIdRegex = Regex("""/pin/([\w-]{6,})""")
+
+    /** Registro do que aconteceu na última busca (para testes e diagnóstico). */
+    val trace = mutableListOf<String>()
+
+    /** Id do pin a partir do endereço (aceita "/pin/123/" e "/pin/titulo--123/"). */
+    fun pinId(url: String): String? {
+        val seg = pinIdRegex.find(url)?.groupValues?.get(1) ?: return null
+        return if (seg.contains("--")) seg.substringAfterLast("--") else seg
+    }
     private val mediaExt = Regex("""\.(gif|mp4|webm|mov|webp|jpe?g|png)(\?|$)""", RegexOption.IGNORE_CASE)
 
     /** Primeiro link que aparece num texto (o Pinterest compartilha "Olha isso! https://pin.it/..."). */
@@ -41,19 +50,26 @@ object Links {
 
     /** Descobre o endereço do arquivo de mídia a partir do link compartilhado. */
     fun findMedia(url: String): String {
+        trace.clear()
         if (mediaExt.containsMatchIn(URL(url).path)) return url
         val final = resolve(url)
+        trace += "final: $final"
         if (mediaExt.containsMatchIn(URL(final).path)) return final
-        if (isPinterest(final)) {
-            val id = pinIdRegex.find(final)?.groupValues?.get(1)
+        val pinterest = isPinterest(final)
+        if (pinterest) {
+            val id = pinId(final)
+            trace += "pin id: $id"
             if (id != null) {
-                try {
-                    pinterestApi(id)?.let { return it }
-                } catch (e: IOException) { /* tenta pela página */ }
+                for (key in listOf("unauth_react_main_pin", "detailed")) {
+                    try {
+                        pinterestApi(id, key)?.let { trace += "api($key): $it"; return it }
+                    } catch (e: Exception) { trace += "api($key) falhou: ${e.message}" }
+                }
             }
         }
         val html = getText(final)
-        fromHtml(html)?.let { return it }
+        trace += "página: ${html.length} caracteres"
+        fromHtml(html, pinterest)?.let { trace += "página: $it"; return it }
         throw LinkException(
             if (isPinterest(final)) "Não encontrei um GIF ou vídeo nesse pin. Ele pode ser só uma foto, ou ser privado."
             else "Não encontrei imagem, GIF ou vídeo nesse link."
@@ -69,14 +85,15 @@ object Links {
             val code = c.responseCode
             val loc = c.getHeaderField("Location")
             c.disconnect()
+            trace += "$code $current"
             if (code in 300..399 && loc != null) current = URL(URL(current), loc).toString() else return current
         }
         return current
     }
 
     /** Mesma consulta pública que a página do pin usa. */
-    private fun pinterestApi(id: String): String? {
-        val data = """{"options":{"id":"$id","field_set_key":"unauth_react_main_pin"}}"""
+    private fun pinterestApi(id: String, key: String): String? {
+        val data = """{"options":{"id":"$id","field_set_key":"$key"}}"""
         val api = "https://www.pinterest.com/resource/PinResource/get/?data=" + URLEncoder.encode(data, "UTF-8")
         val json = JSONObject(getText(api, accept = "application/json"))
         val pin = json.optJSONObject("resource_response")?.optJSONObject("data") ?: return null
@@ -114,7 +131,7 @@ object Links {
     }
 
     /** Procura a mídia nas etiquetas da página (funciona com Tenor, Giphy e muitos sites). */
-    fun fromHtml(html: String): String? {
+    fun fromHtml(html: String, pinterest: Boolean = false): String? {
         fun meta(prop: String): String? {
             val a = Regex("""<meta[^>]+(?:property|name)=["']$prop["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
             val b = Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']$prop["']""", RegexOption.IGNORE_CASE)
@@ -129,6 +146,8 @@ object Links {
         Regex("""https://i\.pinimg\.com/originals/[\w/]+\.gif""").find(html)?.let { return it.value }
         Regex("""https://v\d*\.pinimg\.com/videos/[^"\\\s]+?\.mp4""").find(html)?.let { return it.value }
         val img = meta("og:image") ?: meta("twitter:image")
+        // no Pinterest, a imagem genérica do site (logo + mosaico) não serve
+        if (pinterest) return img?.takeIf { it.startsWith("https://i.pinimg.com/") }
         return img?.takeIf { it.startsWith("http") }
     }
 

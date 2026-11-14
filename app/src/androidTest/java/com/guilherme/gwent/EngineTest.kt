@@ -134,6 +134,31 @@ class EngineTest {
         Report.saveSticker("pinterest.webp", made.webp)
     }
 
+    /** Segundo link real que ele mandou (antes vinha a imagem genérica do Pinterest). */
+    @Test fun pinterestLink2() {
+        val link = "https://pin.it/7vJj846RC"
+        try {
+            val media = Links.findMedia(link)
+            Report.log("pinterest2: mídia = $media")
+        } catch (e: Exception) {
+            Report.log("pinterest2: ERRO ${e.javaClass.simpleName}: ${e.message}")
+        } finally {
+            Links.trace.forEach { Report.log("pinterest2 · $it") }
+        }
+        // diagnóstico extra: o que a página traz
+        try {
+            val c = java.net.URL(Links.trace.firstOrNull { it.startsWith("final: ") }?.removePrefix("final: ") ?: link)
+                .openConnection() as java.net.HttpURLConnection
+            c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36")
+            val html = c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+            Regex("""https?://[a-z0-9.]*pinimg\.com/[^"'\\\s]+""").findAll(html).map { it.value }.distinct().take(25)
+                .forEach { Report.log("pinterest2 página · $it") }
+            Regex("""<meta[^>]+og:[^>]+>""").findAll(html).take(10).forEach { Report.log("pinterest2 meta · ${it.value.take(200)}") }
+        } catch (e: Exception) { Report.log("pinterest2 página ERRO ${e.message}") }
+        val media = Links.findMedia(link)
+        assertTrue("pinterest2: não pode ser a imagem genérica", media.contains("pinimg.com"))
+    }
+
     @Test fun speed() {
         val v = Sources.open(ctx, asset("clip.mp4"))
         val fast = Maker.makeAnimated(v, 0, 4_000, Framing.fill(v.width, v.height), null, ctx.cacheDir, {}, speed = 2f)
