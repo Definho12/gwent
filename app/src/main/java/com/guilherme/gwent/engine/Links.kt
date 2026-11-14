@@ -86,6 +86,8 @@ object Links {
             val loc = c.getHeaderField("Location")
             c.disconnect()
             trace += "$code $current"
+            // chegou no pin: para aqui (às vezes o Pinterest ainda redireciona para uma página de erro)
+            if (isPinterest(current) && pinId(current) != null) return current
             if (code in 300..399 && loc != null) current = URL(URL(current), loc).toString() else return current
         }
         return current
