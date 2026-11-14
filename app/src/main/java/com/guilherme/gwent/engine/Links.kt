@@ -67,7 +67,8 @@ object Links {
                 }
             }
         }
-        val html = getText(final)
+        val pageUrl = if (pinterest) pinId(final)?.let { "https://www.pinterest.com/pin/$it/" } ?: final else final
+        val html = getText(pageUrl)
         trace += "página: ${html.length} caracteres"
         fromHtml(html, pinterest)?.let { trace += "página: $it"; return it }
         throw LinkException(
@@ -97,7 +98,13 @@ object Links {
     private fun pinterestApi(id: String, key: String): String? {
         val data = """{"options":{"id":"$id","field_set_key":"$key"}}"""
         val api = "https://www.pinterest.com/resource/PinResource/get/?data=" + URLEncoder.encode(data, "UTF-8")
-        val json = JSONObject(getText(api, accept = "application/json"))
+        val json = JSONObject(getText(api, accept = "application/json, text/javascript, */*; q=0.01",
+            extra = mapOf(
+                "X-Requested-With" to "XMLHttpRequest",
+                "X-Pinterest-PWS-Handler" to "www/pin/[id].js",
+                "X-Pinterest-AppState" to "active",
+                "Referer" to "https://www.pinterest.com/pin/$id/",
+            )))
         val pin = json.optJSONObject("resource_response")?.optJSONObject("data") ?: return null
         return pickFromPin(pin)
     }
@@ -153,19 +160,20 @@ object Links {
         return img?.takeIf { it.startsWith("http") }
     }
 
-    private fun open(url: String, head: Boolean = false, accept: String? = null): HttpURLConnection {
+    private fun open(url: String, head: Boolean = false, accept: String? = null, extra: Map<String, String> = emptyMap()): HttpURLConnection {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 15_000
         c.readTimeout = 30_000
         c.setRequestProperty("User-Agent", UA)
         c.setRequestProperty("Accept-Language", "pt-BR,pt;q=0.9,en;q=0.8")
         if (accept != null) c.setRequestProperty("Accept", accept)
+        extra.forEach { (k, v) -> c.setRequestProperty(k, v) }
         if (head) c.requestMethod = "HEAD"
         return c
     }
 
-    private fun getText(url: String, accept: String? = null): String {
-        val c = open(url, accept = accept)
+    private fun getText(url: String, accept: String? = null, extra: Map<String, String> = emptyMap()): String {
+        val c = open(url, accept = accept, extra = extra)
         try {
             val code = c.responseCode
             if (code !in 200..299) throw IOException("HTTP $code")

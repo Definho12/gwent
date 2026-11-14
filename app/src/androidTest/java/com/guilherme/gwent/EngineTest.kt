@@ -122,6 +122,7 @@ class EngineTest {
         val link = "https://pin.it/3A3P3jqK9"
         val media = try { Links.findMedia(link) } catch (e: Exception) { Report.log("pinterest: ERRO ${e.javaClass.simpleName}: ${e.message}"); throw e }
         Report.log("pinterest: mídia = $media")
+        Links.trace.forEach { Report.log("pinterest · $it") }
         val f = Links.fetch(link, File(ctx.cacheDir, "links")) {}
         Report.log("pinterest: baixou ${f.name} (${f.length() / 1024} KB)")
         val src = Sources.open(ctx, Uri.fromFile(f))
@@ -147,7 +148,7 @@ class EngineTest {
         }
         // diagnóstico extra: o que a página traz
         try {
-            val c = java.net.URL(Links.trace.firstOrNull { it.startsWith("final: ") }?.removePrefix("final: ") ?: link)
+            val c = java.net.URL("https://www.pinterest.com/pin/584553226653179064/")
                 .openConnection() as java.net.HttpURLConnection
             c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36")
             val html = c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
