@@ -1,0 +1,34 @@
+pinterest2 · 308 https://pin.it/7vJj846RC
+pinterest2 · 302 https://api.pinterest.com/url_shortener/7vJj846RC/redirect/
+pinterest2 · 301 https://www.pinterest.com/pin/584553226653179064/sent/?invite_code=b2696e44a7eb4ee2a9300ca23e6c1e6e&sender=784822809972058839&sfo=1
+pinterest2 · final: https://www.pinterest.com/pin/584553226653179064/sent/?invite_code=b2696e44a7eb4ee2a9300ca23e6c1e6e&sender=784822809972058839&sfo=1
+pinterest2 · pin id: 584553226653179064
+pinterest2 · api(unauth_react_main_pin) falhou: HTTP 404
+pinterest2 · api(detailed) falhou: HTTP 404
+pinterest2: PinterestPrivateException: Esse pin não é público (por exemplo, está numa pasta secreta). Entre na sua conta do Pinterest uma vez aqui no Gwent para baixar pins assim.
+pinterest: mídia = https://i.pinimg.com/originals/c3/8e/09/c38e098a4a18edebdcbbc8e7c413ac72.gif
+pinterest · 308 https://pin.it/3A3P3jqK9
+pinterest · 302 https://api.pinterest.com/url_shortener/3A3P3jqK9/redirect/
+pinterest · 200 https://www.pinterest.com/pin/995577061396123179/sent/?invite_code=e08efcfebc824388b098938220d398ea&sender=784822809972058839&sfo=1
+pinterest · final: https://www.pinterest.com/pin/995577061396123179/sent/?invite_code=e08efcfebc824388b098938220d398ea&sender=784822809972058839&sfo=1
+pinterest · pin id: 995577061396123179
+pinterest · api(unauth_react_main_pin): https://i.pinimg.com/originals/c3/8e/09/c38e098a4a18edebdcbbc8e7c413ac72.gif
+pinterest: baixou link_1794616990121.gif (3549 KB)
+pinterest: GifSource 362x362, 5000 ms, 9.0 fps
+pinterest: 469 KB, 512x512, 40 quadros, 5000 ms, feito em 976 ms
+anim.gif: GifSource 320x240, 1920 ms, 12.5 fps
+anim.gif: 37 KB, 512x512, 24 quadros, 1920 ms, feito em 125 ms
+clip.mp4 2x: 336 KB, 512x512, 30 quadros, 2000 ms, feito em 0 ms
+anim.gif 0.5x: 37 KB, 512x512, 24 quadros, 3843 ms, feito em 0 ms
+clip.mp4 3x: 226 KB, 512x512, 20 quadros, 1333 ms, feito em 0 ms
+clip.mp4: VideoSource 1280x720, 4000 ms, 30.0 fps
+clip.mp4: 480 KB, 512x512, 60 quadros, 4000 ms, feito em 1574 ms
+provider: smwfomfox.webp, dup1_smwfomfox.webp, dup2_smwfomfox.webp
+anim.webp: WebpSource 400x400, 2000 ms, 10.0 fps
+anim.webp: 7 KB, 512x512, 20 quadros, 2000 ms, feito em 125 ms
+photo.jpg: 63 KB em 31 ms
+rotated.mp4: 720x1280
+rotated.mp4 quadro: 450x800
+rotated.mp4: VideoSource 720x1280, 3000 ms, 30.0 fps
+rotated.mp4: 441 KB, 512x512, 45 quadros, 3000 ms, feito em 800 ms
+fluxo vídeo: 6024 ms até abrir o pacote

@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.guilherme.gwent.EngineTest" tests="10" failures="0" errors="0" skipped="0" time="62.79" timestamp="2026-11-14T00:44:06" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 14" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="pinterestPrivatePin" classname="com.guilherme.gwent.EngineTest" time="3.057" />
+  <testcase name="pinterestLink" classname="com.guilherme.gwent.EngineTest" time="5.136" />
+  <testcase name="gif" classname="com.guilherme.gwent.EngineTest" time="0.129" />
+  <testcase name="speed" classname="com.guilherme.gwent.EngineTest" time="1.867" />
+  <testcase name="video" classname="com.guilherme.gwent.EngineTest" time="1.637" />
+  <testcase name="providerServesPackToWhatsApp" classname="com.guilherme.gwent.EngineTest" time="0.048" />
+  <testcase name="animatedWebp" classname="com.guilherme.gwent.EngineTest" time="0.152" />
+  <testcase name="photoBecomesStaticSticker" classname="com.guilherme.gwent.EngineTest" time="0.029" />
+  <testcase name="rotatedVideo" classname="com.guilherme.gwent.EngineTest" time="0.98" />
+  <testcase name="flow" classname="com.guilherme.gwent.ShotsTest" time="47.99" />
+</testsuite>
