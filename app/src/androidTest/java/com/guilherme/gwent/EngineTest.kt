@@ -12,6 +12,7 @@ import com.guilherme.gwent.engine.Framing
 import com.guilherme.gwent.engine.GifSource
 import com.guilherme.gwent.engine.Limits
 import com.guilherme.gwent.engine.Links
+import com.guilherme.gwent.engine.PinterestPrivateException
 import com.guilherme.gwent.engine.MadeSticker
 import com.guilherme.gwent.engine.Maker
 import com.guilherme.gwent.engine.NativeWebp
@@ -135,29 +136,16 @@ class EngineTest {
         Report.saveSticker("pinterest.webp", made.webp)
     }
 
-    /** Segundo link real que ele mandou (antes vinha a imagem genérica do Pinterest). */
-    @Test fun pinterestLink2() {
+    /** Segundo link real que ele mandou: pin escondido (sem conta) → tem que pedir login, nunca a imagem genérica. */
+    @Test fun pinterestPrivatePin() {
         val link = "https://pin.it/7vJj846RC"
+        var err: Exception? = null
         try {
-            val media = Links.findMedia(link)
-            Report.log("pinterest2: mídia = $media")
-        } catch (e: Exception) {
-            Report.log("pinterest2: ERRO ${e.javaClass.simpleName}: ${e.message}")
-        } finally {
-            Links.trace.forEach { Report.log("pinterest2 · $it") }
-        }
-        // diagnóstico extra: o que a página traz
-        try {
-            val c = java.net.URL("https://www.pinterest.com/pin/584553226653179064/")
-                .openConnection() as java.net.HttpURLConnection
-            c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36")
-            val html = c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
-            Regex("""https?://[a-z0-9.]*pinimg\.com/[^"'\\\s]+""").findAll(html).map { it.value }.distinct().take(25)
-                .forEach { Report.log("pinterest2 página · $it") }
-            Regex("""<meta[^>]+og:[^>]+>""").findAll(html).take(10).forEach { Report.log("pinterest2 meta · ${it.value.take(200)}") }
-        } catch (e: Exception) { Report.log("pinterest2 página ERRO ${e.message}") }
-        val media = Links.findMedia(link)
-        assertTrue("pinterest2: não pode ser a imagem genérica", media.contains("pinimg.com"))
+            Report.log("pinterest2: mídia = ${Links.findMedia(link)}")
+        } catch (e: Exception) { err = e }
+        Links.trace.forEach { Report.log("pinterest2 · $it") }
+        Report.log("pinterest2: ${err?.javaClass?.simpleName}: ${err?.message}")
+        assertTrue("pinterest2: devia pedir login", err is PinterestPrivateException)
     }
 
     @Test fun speed() {

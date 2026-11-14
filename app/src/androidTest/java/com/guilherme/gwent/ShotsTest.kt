@@ -106,5 +106,15 @@ class ShotsTest {
         device.pressBack()
         SystemClock.sleep(1500)
         shot("7-inicio.png")
+
+        // Pin escondido → mensagem + botão de login → página de login do Pinterest
+        inst.uiAutomation.executeShellCommand(
+            "am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT https://pin.it/7vJj846RC -n ${ctx.packageName}/.MainActivity"
+        ).close()
+        val login = waitFor(By.text("Entrar no Pinterest"), 40_000)
+        shot("8-pin-escondido.png")
+        login?.click()
+        SystemClock.sleep(6000)
+        shot("9-login-pinterest.png")
     }
 }

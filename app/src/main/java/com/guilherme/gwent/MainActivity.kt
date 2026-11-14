@@ -39,6 +39,7 @@ import com.guilherme.gwent.data.Packs
 import com.guilherme.gwent.data.WhatsApp
 import com.guilherme.gwent.engine.Links
 import com.guilherme.gwent.ui.LinkScreen
+import com.guilherme.gwent.ui.PinterestLoginScreen
 import com.guilherme.gwent.ui.PasteLinkDialog
 import com.guilherme.gwent.ui.EditorScreen
 import com.guilherme.gwent.ui.Gw
@@ -54,6 +55,7 @@ sealed class Screen {
     data class PackView(val id: String) : Screen()
     data class Editor(val uris: List<Uri>, val packId: String?) : Screen()
     data class Link(val text: String, val packId: String?) : Screen()
+    data class PinLogin(val text: String, val packId: String?) : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         Packs.load(this)
+        Links.cookies = { url -> try { android.webkit.CookieManager.getInstance().getCookie(url) } catch (e: Exception) { null } }
         handleShare(intent)
         setContent { GwentTheme { App() } }
     }
@@ -195,8 +198,13 @@ class MainActivity : ComponentActivity() {
                         text = s.text,
                         onReady = { uri -> screen = Screen.Editor(listOf(uri), s.packId) },
                         onClose = { screen = s.packId?.let { Screen.PackView(it) } ?: Screen.Home },
+                        onLogin = { screen = Screen.PinLogin(s.text, s.packId) },
                     )
                 }
+                is Screen.PinLogin -> PinterestLoginScreen(
+                    onDone = { screen = Screen.Link(s.text, s.packId) },
+                    onClose = { screen = Screen.Link(s.text, s.packId) },
+                )
                 is Screen.Editor -> key(s) {
                     EditorScreen(
                         uris = s.uris,

@@ -13,8 +13,8 @@ android {
         applicationId = "com.guilherme.gwent"
         minSdk = 29
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.5"
+        versionCode = 7
+        versionName = "1.6"
         ndk { abiFilters += if (project.hasProperty("emu")) listOf("x86_64") else listOf("arm64-v8a") }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild { cmake { arguments += listOf("-DANDROID_STL=none") } }

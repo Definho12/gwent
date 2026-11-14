@@ -8,7 +8,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-class LinkException(msg: String) : Exception(msg)
+open class LinkException(msg: String) : Exception(msg)
+
+/** O pin existe mas o Pinterest só mostra para quem está conectado (ex.: pasta secreta). */
+class PinterestPrivateException(val loggedIn: Boolean) : LinkException(
+    if (loggedIn) "Mesmo com a sua conta, o Pinterest não liberou esse pin. Ele pode ter sido apagado."
+    else "Esse pin não é público (por exemplo, está numa pasta secreta). Entre na sua conta do Pinterest uma vez aqui no Gwent para baixar pins assim."
+)
+
+private class HttpStatusException(val code: Int) : IOException("HTTP $code")
 
 /**
  * Baixa a mídia de um link (Pinterest, Tenor, Giphy ou link direto de GIF/vídeo/imagem)
@@ -21,6 +29,12 @@ object Links {
 
     private val urlRegex = Regex("""https?://[^\s"'<>]+""")
     private val pinIdRegex = Regex("""/pin/([\w-]{6,})""")
+
+    /** Cookies da conta do Pinterest (vêm do login feito no próprio app). */
+    var cookies: (String) -> String? = { null }
+
+    fun pinterestCookies(): String? = cookies("https://www.pinterest.com")
+    fun pinterestLoggedIn(): Boolean = pinterestCookies()?.contains("_auth=1") == true
 
     /** Registro do que aconteceu na última busca (para testes e diagnóstico). */
     val trace = mutableListOf<String>()
@@ -60,11 +74,17 @@ object Links {
             val id = pinId(final)
             trace += "pin id: $id"
             if (id != null) {
+                var hidden = false
                 for (key in listOf("unauth_react_main_pin", "detailed")) {
                     try {
                         pinterestApi(id, key)?.let { trace += "api($key): $it"; return it }
+                    } catch (e: HttpStatusException) {
+                        trace += "api($key) falhou: HTTP ${e.code}"
+                        if (e.code == 403 || e.code == 404) hidden = true
                     } catch (e: Exception) { trace += "api($key) falhou: ${e.message}" }
                 }
+                // pin escondido: a página só traria outros pins (ou nada), então nem tenta
+                if (hidden) throw PinterestPrivateException(pinterestLoggedIn())
             }
         }
         val pageUrl = if (pinterest) pinId(final)?.let { "https://www.pinterest.com/pin/$it/" } ?: final else final
@@ -166,6 +186,12 @@ object Links {
         c.readTimeout = 30_000
         c.setRequestProperty("User-Agent", UA)
         c.setRequestProperty("Accept-Language", "pt-BR,pt;q=0.9,en;q=0.8")
+        if (isPinterest(url)) {
+            pinterestCookies()?.let { ck ->
+                c.setRequestProperty("Cookie", ck)
+                Regex("""(?:^|;\s*)csrftoken=([^;]+)""").find(ck)?.let { c.setRequestProperty("X-CSRFToken", it.groupValues[1]) }
+            }
+        }
         if (accept != null) c.setRequestProperty("Accept", accept)
         extra.forEach { (k, v) -> c.setRequestProperty(k, v) }
         if (head) c.requestMethod = "HEAD"
@@ -176,7 +202,7 @@ object Links {
         val c = open(url, accept = accept, extra = extra)
         try {
             val code = c.responseCode
-            if (code !in 200..299) throw IOException("HTTP $code")
+            if (code !in 200..299) throw HttpStatusException(code)
             return c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
         } finally {
             c.disconnect()
